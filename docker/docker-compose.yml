@@ -1,0 +1,99 @@
+version: "3"
+
+services:
+  otel-collector: # OpenTelemetry Collector
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    restart: unless-stopped
+    command: [--config=/etc/otelcol-contrib/otel-collector.yml]
+    volumes:
+      - ./collector/otel-collector.yml:/etc/otelcol-contrib/otel-collector.yml
+    networks:
+      - otel_network
+    ports:
+      - "1888:1888" # pprof extension
+      - "13133:13133" # health_check extension
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP http receiver
+      - "55679:55679" # zpages extension
+
+  prometheus: # sistema de métricas
+    container_name: prometheus
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    command: [--config.file=/etc/prometheus/prometheus.yml]
+    networks:
+      - otel_network
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  cadvisor: # exporta métricas de contêineres
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - otel_network
+
+  node-exporter: # exporta métricas do host e do sistema operacional
+    image: prom/node-exporter:latest
+    container_name: prom-node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+    networks:
+      - otel_network
+
+  loki: # sistema de logs
+    image: grafana/loki:latest
+    container_name: loki
+    command: [-config.file=/etc/loki/local-config.yaml]
+    volumes: 
+      - ./loki/local-config.yml:/etc/loki/local-config.yaml
+    networks:
+      - otel_network
+
+  grafana: # visualização de métricas, logs e traces
+    container_name: grafana
+    image: grafana/grafana:latest
+    volumes:
+      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards/json
+    networks:
+      - otel_network
+    ports:
+      - "3000:3000" # Web UI
+
+  tempo: # sistema de traces
+    container_name: tempo
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yml" ]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml
+    restart: unless-stopped
+    networks:
+      - otel_network
+
+  jaeger-all-in-one: # sistema de traces
+    container_name: jaeger-all-in-one
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    networks:
+      - otel_network
+    ports:
+      - "16686:16686"
+
+networks:
+  otel_network:
+    driver: bridge

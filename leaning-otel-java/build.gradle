@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.asciidoctor.jvm.convert' version '3.3.2'
+}
+
+group = 'br.com.db1'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    springDocVersion = '2.5.0'
+    springCloudVersion = "2024.0.0"
+    openTelemetryVersion = "2.13.3"
+    micrometerVersion = "1.4.3"
+    set('snippetsDir', file("build/generated-snippets"))
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:$openTelemetryVersion"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        mavenBom "io.micrometer:micrometer-tracing-bom:$micrometerVersion"
+    }
+}
+
+dependencies {
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:$springDocVersion"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-api:$springDocVersion"
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    implementation 'com.h2database:h2'
+
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    outputs.dir snippetsDir
+    useJUnitPlatform()
+}
+

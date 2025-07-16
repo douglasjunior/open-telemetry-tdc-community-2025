@@ -1,0 +1,98 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: false
+    jsonData:
+      httpMethod: GET
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    orgId: 1
+    url: http://loki:3100
+    basicAuth: false
+    isDefault: true
+    version: 1
+    editable: false
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    url: http://jaeger-all-in-one:16686
+    access: proxy
+    basicAuth: false
+    readOnly: false
+    isDefault: false
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: 'loki'
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: false
+        filterBySpanID: false
+        customQuery: true
+        query: '{service_instance_id="$${__span.tags["service.instance.id"]}"} | logfmt | trace_id = `$${__trace.traceId}`'
+      tracesToMetrics:
+        datasourceUid: 'prometheus'
+        spanStartTimeShift: '-15m'
+        spanEndTimeShift: '15m'
+        queries:
+          - name: 'Request rate'
+            query: 'sum(increase(http_server_request_duration_seconds_count{exported_instance="$${__span.tags["service.instance.id"]}"}[1m]))'
+      nodeGraph:
+        enabled: true
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '-15m'
+        spanEndTimeShift: '15m'
+      spanBar:
+        type: 'None'
+  - name: Tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://tempo:3200
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: false
+    apiVersion: 1
+    uid: tempo
+    jsonData:
+      httpMethod: GET
+      serviceMap:
+        datasourceUid: prometheus
+      streamingEnabled:
+        search: true
+      tracesToLogsV2:
+        datasourceUid: 'loki'
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: false
+        filterBySpanID: false
+        customQuery: true
+        query: '{service_instance_id="$${__span.tags["service.instance.id"]}"} | logfmt | trace_id = `$${__trace.traceId}`'
+      tracesToMetrics:
+        datasourceUid: 'prometheus'
+        spanStartTimeShift: '-15m'
+        spanEndTimeShift: '15m'
+        queries:
+          - name: 'Request rate'
+            query: 'sum(increase(http_server_request_duration_seconds_count{exported_instance="$${__span.tags["service.instance.id"]}"}[1m]))'
+      nodeGraph:
+        enabled: true
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '-15m'
+        spanEndTimeShift: '15m'
+      spanBar:
+        type: 'None'
