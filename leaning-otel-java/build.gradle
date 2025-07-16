@@ -49,6 +49,17 @@ dependencies {
     developmentOnly "org.springframework.boot:spring-boot-devtools"
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Automatize the generation of OpenTelemetry spans
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter'
+    implementation "io.opentelemetry.instrumentation:opentelemetry-spring-web-3.1:$openTelemetryVersion-alpha"
+
+    // Enable Micrometer metrics to work with tracing and metrics
+    implementation 'io.micrometer:micrometer-tracing'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.micrometer:micrometer-registry-otlp'
+    // Enable Micrometer metrics to work with OpenFeign
+    implementation 'io.github.openfeign:feign-micrometer'
 }
 
 tasks.named('test') {
